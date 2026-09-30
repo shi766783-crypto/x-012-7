@@ -8,6 +8,8 @@ import ProfileCenter from './components/ProfileCenter.vue'
 import RecordForms from './components/RecordForms.vue'
 import WateringReminders from './components/WateringReminders.vue'
 import { useGardenStore } from './composables/useGardenStore'
+import { toRef } from 'vue'
+import { useWateringNotifications } from './composables/useWateringNotifications'
 
 const {
   state,
@@ -24,6 +26,15 @@ const {
   getPlantTimeline,
   getPlantGrowth,
 } = useGardenStore()
+
+const {
+  supported: notificationSupported,
+  permission: notificationPermission,
+  inAppAlerts,
+  enable: enableNotifications,
+  dismissInApp,
+  dismissAllInApp,
+} = useWateringNotifications(toRef(state, 'plants'))
 </script>
 
 <template>
@@ -40,7 +51,15 @@ const {
 
     <section class="main-grid">
       <div class="left-column">
-        <WateringReminders :plants="dueWateringPlants" />
+        <WateringReminders
+          :plants="dueWateringPlants"
+          :notification-supported="notificationSupported"
+          :notification-permission="notificationPermission"
+          :in-app-alerts="inAppAlerts"
+          @enable-notifications="enableNotifications"
+          @dismiss-alert="dismissInApp"
+          @dismiss-all-alerts="dismissAllInApp"
+        />
         <PlantList :plants="plantsWithStatus" />
       </div>
       <PlantForm @submit="addPlant" />

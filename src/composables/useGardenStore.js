@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { DEFAULT_GOALS } from '../constants/garden'
 import { todayISO } from '../utils/date'
 import { loadGardenState, saveGardenState } from '../services/storage'
@@ -102,10 +102,18 @@ export function useGardenStore() {
   const storedState = loadGardenState()
   const state = reactive(storedState || demoState)
 
+  // 本地“今天”随时间滚动，页面整夜开着时待浇水清单也能在跨天后刷新
+  const today = ref(todayISO())
+  const dayTimer = window.setInterval(() => {
+    const current = todayISO()
+    if (current !== today.value) today.value = current
+  }, 60 * 1000)
+  onBeforeUnmount(() => window.clearInterval(dayTimer))
+
   const plantsWithStatus = computed(() =>
-    state.plants.map((plant) => ({ ...plant, wateringStatus: getWateringStatus(plant) })),
+    state.plants.map((plant) => ({ ...plant, wateringStatus: getWateringStatus(plant, today.value) })),
   )
-  const dueWateringPlants = computed(() => getDueWateringPlants(state.plants))
+  const dueWateringPlants = computed(() => getDueWateringPlants(state.plants, today.value))
   const dashboard = computed(() => getDashboard(state.plants, state.careRecords, state.growthRecords))
   const goals = computed(() => updateWateringGoal(state.goals, state.careRecords))
   const achievements = computed(() =>
